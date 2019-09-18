@@ -91,7 +91,7 @@ public class FuzzySearchMethodsFactory {
 
     private String fuzzySearchQuery(String entityName, List<VariableElement> searchFields) {
         String placeHolder = firstLowerCaseLetterOf(entityName);
-        StringBuilder result = new StringBuilder("SELECT " + placeHolder + " FROM " + entityName);
+        StringBuilder result = new StringBuilder("SELECT " + placeHolder + " FROM " + entityName + " " + placeHolder);
         boolean isFirst = true;
         for (VariableElement field : searchFields) {
             final String conditionPrefix = isFirst ? " WHERE" : " OR";
