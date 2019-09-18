@@ -2,6 +2,7 @@ package org.sindaryn.datafi;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import org.sindaryn.datafi.reflection.CachedEntityType;
 import org.sindaryn.datafi.reflection.ReflectionCache;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -78,6 +79,14 @@ public class StaticUtils {
             return PageRequest.of(offset, limit, Sort.by(sortingDirection, sortBy));
         } else
             return PageRequest.of(offset, limit);
+    }
+
+    public static void validateSortByIfNonNull(Class<?> clazz, String sortByFieldName, ReflectionCache reflectionCache){
+        if(sortByFieldName == null) return;
+        CachedEntityType entityTypeInfo = reflectionCache.getEntitiesCache().get(clazz.getSimpleName());
+        if(entityTypeInfo.getFields().get(sortByFieldName) == null)
+            throw new IllegalArgumentException(
+                    "Cannot sort by "+ sortByFieldName +" as there is no such field in " + clazz.getName());
     }
 
     public static String firstLowerCaseLetterOf(String str){

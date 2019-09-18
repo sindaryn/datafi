@@ -22,8 +22,7 @@ import java.util.*;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Maps.immutableEntry;
-import static org.sindaryn.datafi.StaticUtils.generatePageRequest;
-import static org.sindaryn.datafi.StaticUtils.toPascalCase;
+import static org.sindaryn.datafi.StaticUtils.*;
 
 @Service
 @SuppressWarnings("unchecked")
@@ -483,6 +482,7 @@ public abstract class BaseDataManager<T> {
     public List<T> fuzzySearchBy(
             Class<T> clazz, String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
         try{
+            validateSortByIfNonNull(clazz, sortBy, reflectionCache);
             GenericDao dao = daoMap.get(clazz.getSimpleName());
             Pageable paginator = generatePageRequest(offset, limit, sortBy, sortDirection);
             Method methodToInvoke =
