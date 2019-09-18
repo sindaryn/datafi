@@ -3,8 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="e922835c-7c67-46a7-bd6b-04f4c4f6b68d" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/StaticUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/StaticUtils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/generator/FuzzySearchMethodsFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/generator/FuzzySearchMethodsFactory.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/service/BaseDataManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/service/BaseDataManager.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />

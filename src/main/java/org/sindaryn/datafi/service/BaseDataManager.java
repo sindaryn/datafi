@@ -300,28 +300,6 @@ public abstract class BaseDataManager<T> {
         return daoMap.get(clazz.getSimpleName()).count(specification);
     }
 
-    public List<T> fuzzySearchBy(String searchTerm){
-        return fuzzySearchBy(clazz, searchTerm, 0, 50);
-    }
-    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm){
-        return fuzzySearchBy(clazz, searchTerm, 0, 50);
-    }
-    public List<T> fuzzySearchBy(String searchTerm, int offset, int limit){
-        return fuzzySearchBy(clazz, searchTerm, offset, limit);
-    }
-    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm, int offset, int limit){
-        try{
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
-            Pageable paginator = generatePageRequest(offset, limit, null, null);
-            Method methodToInvoke =
-                    getMethodToInvoke("fuzzySearch", new Class<?>[]{String.class, Pageable.class}, dao);
-            Page<T> result = (Page<T>) methodToInvoke.invoke(dao, searchTerm, paginator);
-            return result.getContent();
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
-    }
-
     public List<T> selectByResolver(String resolverName, Object... args){
         return selectByResolver(clazz, resolverName, args);
     }
@@ -479,4 +457,41 @@ public abstract class BaseDataManager<T> {
     public org.sindaryn.datafi.reflection.ReflectionCache getReflectionCache() {
         return this.reflectionCache;
     }
+
+    //implicit / default pagination
+    public List<T> fuzzySearchBy(String searchTerm){
+        return fuzzySearchBy(clazz, searchTerm);
+    }
+    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm){
+        return fuzzySearchBy(clazz, searchTerm, 0, 50);
+    }
+
+    //explicit pagination
+    public List<T> fuzzySearchBy(String searchTerm, int offset, int limit){
+        return fuzzySearchBy(clazz, searchTerm, offset, limit);
+    }
+    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm, int offset, int limit){
+        return fuzzySearchBy(clazz, searchTerm, offset, limit, null, null);
+    }
+
+    //explicit pagination with sort
+
+    public List<T> fuzzySearchBy(String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
+        return fuzzySearchBy(clazz, searchTerm, offset, limit, sortBy, sortDirection);
+    }
+
+    public List<T> fuzzySearchBy(
+            Class<T> clazz, String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
+        try{
+            GenericDao dao = daoMap.get(clazz.getSimpleName());
+            Pageable paginator = generatePageRequest(offset, limit, sortBy, sortDirection);
+            Method methodToInvoke =
+                    getMethodToInvoke("fuzzySearch", new Class<?>[]{String.class, Pageable.class}, dao);
+            Page<T> result = (Page<T>) methodToInvoke.invoke(dao, searchTerm, paginator);
+            return result.getContent();
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+    }
+
 }
