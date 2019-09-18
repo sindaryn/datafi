@@ -96,7 +96,8 @@ public class FuzzySearchMethodsFactory {
         for (VariableElement field : searchFields) {
             final String conditionPrefix = isFirst ? " WHERE" : " OR";
             isFirst = false;
-            final String condition = " " + placeHolder + "." + field.getSimpleName() + " LIKE %:searchTerm%";
+            final String condition = " lower(" + placeHolder + "." + field.getSimpleName() + ") " +
+                    "LIKE lower(concat(%, :searchTerm, %))";
             result.append(conditionPrefix);
             result.append(condition);
         }
