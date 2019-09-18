@@ -19,6 +19,7 @@ import javax.lang.model.element.VariableElement;
 import java.util.*;
 
 import static com.squareup.javapoet.ParameterizedTypeName.get;
+import static org.sindaryn.datafi.StaticUtils.firstLowerCaseLetterOf;
 import static org.sindaryn.datafi.StaticUtils.logCompilationError;
 
 @Data
@@ -89,12 +90,13 @@ public class FuzzySearchMethodsFactory {
     }
 
     private String fuzzySearchQuery(String entityName, List<VariableElement> searchFields) {
-        StringBuilder result = new StringBuilder("SELECT object FROM " + entityName);
+        String placeHolder = firstLowerCaseLetterOf(entityName);
+        StringBuilder result = new StringBuilder("SELECT " + placeHolder + " FROM " + entityName);
         boolean isFirst = true;
         for (VariableElement field : searchFields) {
             final String conditionPrefix = isFirst ? " WHERE" : " OR";
             isFirst = false;
-            final String condition = " object." + field.getSimpleName() + " LIKE %:searchTerm%";
+            final String condition = placeHolder + "." + field.getSimpleName() + " LIKE %:searchTerm%";
             result.append(conditionPrefix);
             result.append(condition);
         }

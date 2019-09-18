@@ -67,4 +67,8 @@ public class StaticUtils {
         input.forEach(item -> ids.add(getId(item, reflectionCache)));
         return ids;
     }
+
+    public static String firstLowerCaseLetterOf(String str){
+        return str.substring(0, 1).toLowerCase();
+    }
 }
