@@ -13,5 +13,4 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 @Target({FIELD, TYPE})
 @Retention(SOURCE)
 public @interface GetBy {
-
 }

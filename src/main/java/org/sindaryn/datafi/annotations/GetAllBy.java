@@ -16,5 +16,4 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({FIELD, TYPE})
 @Retention(RUNTIME)
 public @interface GetAllBy {
-
 }

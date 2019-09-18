@@ -8,10 +8,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import lombok.var;
-import org.sindaryn.datafi.annotations.GetAllBy;
-import org.sindaryn.datafi.annotations.GetBy;
-import org.sindaryn.datafi.annotations.GetByUnique;
-import org.sindaryn.datafi.annotations.WithResolver;
+import org.sindaryn.datafi.annotations.*;
 import org.sindaryn.datafi.persistence.GenericDao;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -43,8 +40,11 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         Map<TypeElement, List<VariableElement>> annotatedFieldsMap = new HashMap<>();
         Map<TypeElement, List<MethodSpec>> customResolversMap = new HashMap<>();
         resolveCustomResolvers(entities, annotatedFieldsMap, customResolversMap);
+        FuzzySearchMethodsFactory fuzzySearchMethodsFactory = new FuzzySearchMethodsFactory(processingEnv);
+        Map<TypeElement, MethodSpec> fuzzySearchMethodsMap =
+                fuzzySearchMethodsFactory.resolveFuzzySearchMethods(entities);
         //generate a custom jpa repository for each entity
-        entities.forEach(entity -> generateDao(entity, annotatedFieldsMap, customResolversMap));
+        entities.forEach(entity -> generateDao(entity, annotatedFieldsMap, customResolversMap, fuzzySearchMethodsMap));
         /*
         create a configuration source file such that
         our spring beans are included within
@@ -84,25 +84,6 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         return (WithResolver[]) resolvers.toArray();
     }
 
-    private void setComponentScan(Set<? extends TypeElement> entities) {
-        if(!entities.isEmpty()){
-            String className = entities.iterator().next().getQualifiedName().toString();
-            int lastdot = className.lastIndexOf('.');
-            String basePackageName = className.substring(0, lastdot);
-            String simpleClassName = "SindarynClasspathConfiguration";
-            TypeSpec.Builder builder = TypeSpec.classBuilder(simpleClassName)
-                    .addModifiers(Modifier.PUBLIC)
-                    .addAnnotation(Configuration.class)
-                    .addAnnotation(AnnotationSpec.builder(ComponentScan.class)
-                            .addMember(
-                                    "basePackages",
-                                    "{$S}",
-                                    "org.sindaryn")
-                            .build());
-            writeToJavaFile(simpleClassName, basePackageName, builder, processingEnv, "configuration source file");
-        }
-    }
-
 
     /**
      * generate the actual '<entity name>Dao.java' jpa repository for a given entity
@@ -110,7 +91,11 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
      * @param annotatedFieldsMap - a reference telling us whether this repository needs any custom
      * @param customResolversMap
      */
-    private void generateDao(TypeElement entity, Map<TypeElement, List<VariableElement>> annotatedFieldsMap, Map<TypeElement, List<MethodSpec>> customResolversMap) {
+    private void generateDao(
+            TypeElement entity,
+            Map<TypeElement, List<VariableElement>> annotatedFieldsMap,
+            Map<TypeElement, List<MethodSpec>> customResolversMap,
+            Map<TypeElement, MethodSpec> fuzzySearchMethods) {
 
         String className = entity.getQualifiedName().toString();
         int lastDot = className.lastIndexOf('.');
@@ -123,57 +108,68 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
                 .addAnnotation(Repository.class)
                 .addSuperinterface(get(ClassName.get(GenericDao.class), getIdType(entity, processingEnv), ClassName.get(entity)));
         Collection<VariableElement> annotatedFields = annotatedFieldsMap.get(entity);
-        if(annotatedFields != null){
-            annotatedFields.forEach(annotatedField -> {
-                if(annotatedField.getAnnotation(GetBy.class) != null) {
-                    builder
-                            .addMethod(MethodSpec
-                                    .methodBuilder(
-                                            "findBy" + toPascalCase(annotatedField.getSimpleName().toString()))
-                                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
-                                    .addParameter(
-                                            ClassName.get(annotatedField.asType()),
-                                            annotatedField.getSimpleName().toString())
-                                    .returns(get(ClassName.get(List.class), ClassName.get(entity)))
-                                    .build());
-                }
-                if(annotatedField.getAnnotation(GetAllBy.class) != null){
-                    builder
-                            .addMethod(MethodSpec
-                                    .methodBuilder(
-                                            "findAllBy" + toPascalCase(annotatedField.getSimpleName().toString()) + "In")
-                                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
-                                    .addParameter(
-                                            get(ClassName.get(List.class), ClassName.get(annotatedField.asType())),
-                                            toPlural(annotatedField.getSimpleName().toString()))
-                                    .returns(get(ClassName.get(List.class), ClassName.get(entity)))
-                                    .build());
-                }
-                if(annotatedField.getAnnotation(GetByUnique.class) != null){
-                    if(annotatedField.getAnnotation(GetBy.class) != null){
-                        logCompilationError(processingEnv, annotatedField, "@GetBy and @GetByUnique cannot by definition be used together");
-                    }else if(annotatedField.getAnnotation(Column.class) == null || !annotatedField.getAnnotation(Column.class).unique()){
-                        logCompilationError(processingEnv, annotatedField, "In order to use @GetByUnique on a field, annotate the field as @Column(unique = true)");
-                    }
-                    else {
-                        builder
-                                .addMethod(MethodSpec
-                                        .methodBuilder(
-                                                "findBy" + toPascalCase(annotatedField.getSimpleName().toString()))
-                                        .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
-                                        .addParameter(
-                                                ClassName.get(annotatedField.asType()),
-                                                annotatedField.getSimpleName().toString())
-                                        .returns(get(ClassName.get(Optional.class), ClassName.get(entity)))
-                                        .build());
-                    }
-                }
-            });
-        }
-        if(customResolversMap.get(entity) != null){
+        if(annotatedFields != null)
+            annotatedFields.forEach(annotatedField -> handleAnnotatedField(entity, builder, annotatedField));
+        if(customResolversMap.get(entity) != null)
             customResolversMap.get(entity).forEach(builder::addMethod);
-        }
+        if(fuzzySearchMethods.get(entity) != null)
+            builder.addMethod(fuzzySearchMethods.get(entity));
         writeToJavaFile(entity.getSimpleName().toString(), packageName, builder, processingEnv, "JpaRepository");
+    }
+
+    private void handleAnnotatedField(TypeElement entity, TypeSpec.Builder builder, VariableElement annotatedField) {
+        if(annotatedField.getAnnotation(GetBy.class) != null)
+            handleGetBy(entity, builder, annotatedField);
+        if(annotatedField.getAnnotation(GetAllBy.class) != null)
+            handleGetAllBy(entity, builder, annotatedField);
+        if(annotatedField.getAnnotation(GetByUnique.class) != null)
+            handleGetByUnique(entity, builder, annotatedField);
+    }
+
+    private void handleGetByUnique(TypeElement entity, TypeSpec.Builder builder, VariableElement annotatedField) {
+        if(annotatedField.getAnnotation(GetBy.class) != null){
+            logCompilationError(processingEnv, annotatedField, "@GetBy and @GetByUnique cannot by definition be used together");
+        }else if(annotatedField.getAnnotation(Column.class) == null || !annotatedField.getAnnotation(Column.class).unique()){
+            logCompilationError(processingEnv, annotatedField, "In order to use @GetByUnique on a field, annotate the field as @Column(unique = true)");
+        }
+        else {
+            builder
+                    .addMethod(MethodSpec
+                            .methodBuilder(
+                                    "findBy" + toPascalCase(annotatedField.getSimpleName().toString()))
+                            .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                            .addParameter(
+                                    ClassName.get(annotatedField.asType()),
+                                    annotatedField.getSimpleName().toString())
+                            .returns(get(ClassName.get(Optional.class), ClassName.get(entity)))
+                            .build());
+        }
+    }
+
+    private void handleGetAllBy(TypeElement entity, TypeSpec.Builder builder, VariableElement annotatedField) {
+        builder
+                .addMethod(MethodSpec
+                        .methodBuilder(
+                                "findAllBy" + toPascalCase(annotatedField.getSimpleName().toString()) + "In")
+                        .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                        .addParameter(
+                                get(ClassName.get(List.class), ClassName.get(annotatedField.asType())),
+                                toPlural(annotatedField.getSimpleName().toString()))
+                        .returns(get(ClassName.get(List.class), ClassName.get(entity)))
+                        .build());
+    }
+
+    private void handleGetBy(TypeElement entity, TypeSpec.Builder builder, VariableElement annotatedField) {
+        builder
+                .addMethod(MethodSpec
+                        .methodBuilder(
+                                "findBy" + toPascalCase(annotatedField.getSimpleName().toString()))
+                        .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                        .addParameter(
+                                ClassName.get(annotatedField.asType()),
+                                annotatedField.getSimpleName().toString())
+                        .returns(get(ClassName.get(List.class), ClassName.get(entity)))
+                        .build());
     }
 
     /**
@@ -241,6 +237,25 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         var result = (Collection<? extends TypeElement>) roundEnvironment.getElementsAnnotatedWith(annotationType);
         result.removeIf(element -> element.getKind().equals(ElementKind.ANNOTATION_TYPE));
         return result;
+    }
+
+    private void setComponentScan(Set<? extends TypeElement> entities) {
+        if(!entities.isEmpty()){
+            String className = entities.iterator().next().getQualifiedName().toString();
+            int lastdot = className.lastIndexOf('.');
+            String basePackageName = className.substring(0, lastdot);
+            String simpleClassName = "SindarynClasspathConfiguration";
+            TypeSpec.Builder builder = TypeSpec.classBuilder(simpleClassName)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addAnnotation(Configuration.class)
+                    .addAnnotation(AnnotationSpec.builder(ComponentScan.class)
+                            .addMember(
+                                    "basePackages",
+                                    "{$S}",
+                                    "org.sindaryn")
+                            .build());
+            writeToJavaFile(simpleClassName, basePackageName, builder, processingEnv, "configuration source file");
+        }
     }
 }
 /*
