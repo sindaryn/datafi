@@ -1,13 +1,12 @@
 package org.sindaryn.datafi.generator;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.*;
 import lombok.Data;
 import lombok.NonNull;
 import org.sindaryn.datafi.annotations.FuzzySearchBy;
 import org.sindaryn.datafi.annotations.FuzzySearchByFields;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -40,7 +39,7 @@ public class FuzzySearchMethodsFactory {
         return result;
     }
 
-    private List<VariableElement> getSearchFieldsOf(TypeElement entity) {
+    public List<VariableElement> getSearchFieldsOf(TypeElement entity) {
 
         List<String> classLevelSearchByFieldNames = new ArrayList<>();
         FuzzySearchByFields classLevelSearchByAnnotation = entity.getAnnotation(FuzzySearchByFields.class);
@@ -68,10 +67,11 @@ public class FuzzySearchMethodsFactory {
         return MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                 .addParameter(argument)
+                .addParameter(Pageable.class, "paginator")
                 .addAnnotation(AnnotationSpec.builder(Query.class)
                         .addMember("value", "$S", fuzzySearchQuery)
                         .build())
-                .returns(get(ClassName.get(List.class), ClassName.get(entity)))
+                .returns(get(ClassName.get(Page.class), ClassName.get(entity)))
                 .build();
     }
 

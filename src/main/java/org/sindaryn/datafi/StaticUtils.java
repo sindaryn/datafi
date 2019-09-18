@@ -3,6 +3,8 @@ package org.sindaryn.datafi;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import org.sindaryn.datafi.reflection.ReflectionCache;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -66,6 +68,16 @@ public class StaticUtils {
         List<Object> ids = new ArrayList<>();
         input.forEach(item -> ids.add(getId(item, reflectionCache)));
         return ids;
+    }
+
+    public static PageRequest generatePageRequest(int offset, int limit, String sortBy, Sort.Direction sortingDirection) {
+        if (((limit - offset) <= 0) || limit < 0 || offset < 0) {
+            throw new IllegalArgumentException("Invalid paging range");
+        }
+        if (sortBy != null) {
+            return PageRequest.of(offset, limit, Sort.by(sortingDirection, sortBy));
+        } else
+            return PageRequest.of(offset, limit);
     }
 
     public static String firstLowerCaseLetterOf(String str){

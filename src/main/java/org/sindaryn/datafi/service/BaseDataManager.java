@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Maps.immutableEntry;
+import static org.sindaryn.datafi.StaticUtils.generatePageRequest;
 import static org.sindaryn.datafi.StaticUtils.toPascalCase;
 
 @Service
@@ -300,13 +301,22 @@ public abstract class BaseDataManager<T> {
     }
 
     public List<T> fuzzySearchBy(String searchTerm){
-        return fuzzySearchBy(clazz, searchTerm);
+        return fuzzySearchBy(clazz, searchTerm, 0, 50);
     }
     public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm){
+        return fuzzySearchBy(clazz, searchTerm, 0, 50);
+    }
+    public List<T> fuzzySearchBy(String searchTerm, int offset, int limit){
+        return fuzzySearchBy(clazz, searchTerm, offset, limit);
+    }
+    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm, int offset, int limit){
         try{
             GenericDao dao = daoMap.get(clazz.getSimpleName());
-            Method methodToInvoke = getMethodToInvoke("fuzzySearch", new Class<?>[]{String.class}, dao);
-            return (List<T>) methodToInvoke.invoke(dao, searchTerm);
+            Pageable paginator = generatePageRequest(offset, limit, null, null);
+            Method methodToInvoke =
+                    getMethodToInvoke("fuzzySearch", new Class<?>[]{String.class, Pageable.class}, dao);
+            Page<T> result = (Page<T>) methodToInvoke.invoke(dao, searchTerm, paginator);
+            return result.getContent();
         }catch (Exception e){
             throw new RuntimeException(e);
         }
