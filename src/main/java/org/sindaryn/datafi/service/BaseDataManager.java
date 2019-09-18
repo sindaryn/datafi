@@ -482,6 +482,10 @@ public abstract class BaseDataManager<T> {
     public List<T> fuzzySearchBy(
             Class<T> clazz, String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
         try{
+            if(searchTerm.equals(""))
+                throw new IllegalArgumentException(
+                        "Illegal attempt to search for " + toPlural(clazz.getSimpleName()) + " with blank string"
+                );
             validateSortByIfNonNull(clazz, sortBy, reflectionCache);
             GenericDao dao = daoMap.get(clazz.getSimpleName());
             Pageable paginator = generatePageRequest(offset, limit, sortBy, sortDirection);
