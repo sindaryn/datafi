@@ -1,15 +1,12 @@
 package org.sindaryn.datafi.generator;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.var;
 import org.sindaryn.datafi.service.EntityTypeRuntimeResolver;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
@@ -28,9 +25,12 @@ public class EntityTypeRuntimeResolverBeanFactory {
         if(alreadyCreated.get(entity) != null) return;
         String entityName = entity.getSimpleName().toString();
         ClassName entityClassname = ClassName.get(entity);
-        var builder = TypeSpec.classBuilder(entityName + "EntityTypeRuntimeResolver")
+        String entityRuntimeTypeResolverName = entityName + "EntityTypeRuntimeResolver";
+        var builder = TypeSpec.classBuilder(entityRuntimeTypeResolverName)
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(Service.class)
+                .addAnnotation(AnnotationSpec.builder(Component.class)
+                        .addMember("value", "$S", entityRuntimeTypeResolverName)
+                        .build())
                 .addSuperinterface(
                         ParameterizedTypeName.get(ClassName.get(EntityTypeRuntimeResolver.class), entityClassname)
                 )
@@ -46,6 +46,6 @@ public class EntityTypeRuntimeResolverBeanFactory {
         alreadyCreated.put(entity, result);
         int lastDot = entity.getQualifiedName().toString().lastIndexOf('.');
         String packageName = entity.getQualifiedName().toString().substring(0, lastDot);
-        writeToJavaFile(entityName, packageName, builder, processingEnv, entityName + "EntityTypeRuntimeResolver");
+        writeToJavaFile(entityName, packageName, builder, processingEnv, entityRuntimeTypeResolverName);
     }
 }
