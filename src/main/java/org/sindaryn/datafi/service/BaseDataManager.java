@@ -38,13 +38,15 @@ public abstract class BaseDataManager<T> {
     private Map<String, GenericDao> daoMap;
     @Autowired//autowiring daos via proxy because cannot autowire directly in abstract class
     private DaoCollector daoCollector;
-
+    @Autowired
+    private EntityTypeRuntimeResolver<T> typeRuntimeResolver;
     public void setType(Class<T> type){
         this.clazz = type;
     }
 
     @PostConstruct
     private void init(){
+        setType(typeRuntimeResolver.getType());
         daoMap = new HashMap<>();
         List<? extends GenericDao> daos = daoCollector.getDaos();
         daos.forEach(dao -> {

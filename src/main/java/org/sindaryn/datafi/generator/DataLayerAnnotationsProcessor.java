@@ -8,7 +8,10 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import lombok.var;
-import org.sindaryn.datafi.annotations.*;
+import org.sindaryn.datafi.annotations.GetAllBy;
+import org.sindaryn.datafi.annotations.GetBy;
+import org.sindaryn.datafi.annotations.GetByUnique;
+import org.sindaryn.datafi.annotations.WithResolver;
 import org.sindaryn.datafi.persistence.GenericDao;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +36,7 @@ import static org.sindaryn.datafi.generator.SqlQueryMethodParser.parseResolver;
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class DataLayerAnnotationsProcessor extends AbstractProcessor {
+    private EntityTypeRuntimeResolverBeanFactory runtimeResolverBeanFactory;
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
         //fetch all entities annotated with @PersistableEntity
@@ -43,6 +47,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         FuzzySearchMethodsFactory fuzzySearchMethodsFactory = new FuzzySearchMethodsFactory(processingEnv);
         Map<TypeElement, MethodSpec> fuzzySearchMethodsMap =
                 fuzzySearchMethodsFactory.resolveFuzzySearchMethods(entities);
+        runtimeResolverBeanFactory = new EntityTypeRuntimeResolverBeanFactory(processingEnv);
         //generate a custom jpa repository for each entity
         entities.forEach(entity -> generateDao(entity, annotatedFieldsMap, customResolversMap, fuzzySearchMethodsMap));
         /*
@@ -115,6 +120,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         if(fuzzySearchMethods.get(entity) != null)
             builder.addMethod(fuzzySearchMethods.get(entity));
         writeToJavaFile(entity.getSimpleName().toString(), packageName, builder, processingEnv, "JpaRepository");
+        runtimeResolverBeanFactory.generateEntityTypeRuntimeResolverBean(entity);
     }
 
     private void handleAnnotatedField(TypeElement entity, TypeSpec.Builder builder, VariableElement annotatedField) {
