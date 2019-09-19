@@ -40,6 +40,7 @@ public abstract class BaseDataManager<T> {
     private DaoCollector daoCollector;
     @Autowired
     private EntityTypeRuntimeResolver<T> typeRuntimeResolver;
+
     public void setType(Class<T> type){
         this.clazz = type;
     }
