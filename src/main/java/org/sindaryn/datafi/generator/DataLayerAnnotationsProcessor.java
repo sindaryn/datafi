@@ -32,6 +32,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
         Set<? extends TypeElement> entities = getPersistableEntities(roundEnvironment);
+        if(entities.isEmpty()) return false;
         Map<TypeElement, List<VariableElement>> annotatedFieldsMap = new HashMap<>();
         Map<TypeElement, List<MethodSpec>> customResolversMap = new HashMap<>();
         resolveCustomResolvers(entities, annotatedFieldsMap, customResolversMap);
