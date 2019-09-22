@@ -32,7 +32,7 @@ public class EntityTypeRuntimeResolverBeanFactory {
         return MethodSpec.methodBuilder("nullEntityTypeRuntimeResolver")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Bean.class)
-                .returns(ParameterizedTypeName.get(ClassName.get(EntityTypeRuntimeResolver.class)))
+                .returns(ClassName.get(EntityTypeRuntimeResolver.class))
                 .addStatement("return null").build();
     }
 
