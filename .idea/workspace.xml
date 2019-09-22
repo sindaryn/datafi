@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e922835c-7c67-46a7-bd6b-04f4c4f6b68d" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/generator/DataLayerAnnotationsProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sindaryn/datafi/generator/DataLayerAnnotationsProcessor.java" afterDir="false" />
-    </list>
+    <list default="true" id="e922835c-7c67-46a7-bd6b-04f4c4f6b68d" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

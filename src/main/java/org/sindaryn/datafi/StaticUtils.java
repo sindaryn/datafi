@@ -1,5 +1,6 @@
 package org.sindaryn.datafi;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import org.sindaryn.datafi.reflection.CachedEntityType;
@@ -9,6 +10,10 @@ import org.springframework.data.domain.Sort;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.TypeElement;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Id;
 import javax.tools.Diagnostic;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -91,5 +96,26 @@ public class StaticUtils {
 
     public static String firstLowerCaseLetterOf(String str){
         return str.substring(0, 1).toLowerCase();
+    }
+
+    /**
+     * In order to generate a JpaRepository<T, ID>, we need the ID id type a given entity
+     * @param entity
+     * @return
+     */
+    public static ClassName getIdType(TypeElement entity, ProcessingEnvironment processingEnv) {
+        for(Element field : entity.getEnclosedElements()){
+            if(field.getKind() == ElementKind.FIELD &&
+                    (
+                            field.getAnnotation(Id.class) != null || field.getAnnotation(EmbeddedId.class) != null
+                    )){
+                return (ClassName) ClassName.get(field.asType());
+            }
+        }
+        processingEnv
+                .getMessager()
+                .printMessage(Diagnostic.Kind.ERROR,
+                        "No id type found for entity " + entity.getSimpleName().toString(), entity);
+        return null;
     }
 }

@@ -12,11 +12,10 @@ import org.sindaryn.datafi.persistence.GenericDao;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Id;
-import javax.tools.Diagnostic;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.Optional;
 
 import static com.squareup.javapoet.ParameterizedTypeName.get;
 import static org.sindaryn.datafi.StaticUtils.*;
-import static org.sindaryn.datafi.StaticUtils.toPascalCase;
 @Data
 public class DaoFactory {
     @NonNull
@@ -113,27 +111,5 @@ public class DaoFactory {
                                 annotatedField.getSimpleName().toString())
                         .returns(get(ClassName.get(List.class), ClassName.get(entity)))
                         .build());
-    }
-
-
-    /**
-     * In order to generate a JpaRepository<T, ID>, we need the ID id type a given entity
-     * @param entity
-     * @return
-     */
-    public static ClassName getIdType(TypeElement entity, ProcessingEnvironment processingEnv) {
-        for(Element field : entity.getEnclosedElements()){
-            if(field.getKind() == ElementKind.FIELD &&
-                    (
-                            field.getAnnotation(Id.class) != null || field.getAnnotation(EmbeddedId.class) != null
-                    )){
-                return (ClassName) ClassName.get(field.asType());
-            }
-        }
-        processingEnv
-                .getMessager()
-                .printMessage(Diagnostic.Kind.ERROR,
-                        "No id type found for entity " + entity.getSimpleName().toString(), entity);
-        return null;
     }
 }
