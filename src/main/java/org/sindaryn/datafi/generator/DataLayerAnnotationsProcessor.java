@@ -50,6 +50,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         runtimeResolverBeanFactory = new EntityTypeRuntimeResolverBeanFactory(processingEnv);
         //generate a custom jpa repository for each entity
         entities.forEach(entity -> generateDao(entity, annotatedFieldsMap, customResolversMap, fuzzySearchMethodsMap));
+        writeEntityRuntimeTypeResolversConfig(entities);
         /*
         create a configuration source file such that
         our spring beans are included within
@@ -58,6 +59,18 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         setComponentScan(entities);
         //return false - these annotations are needed for the web-service layer as well
         return false;
+    }
+
+    private void writeEntityRuntimeTypeResolversConfig(Set<? extends TypeElement> entities) {
+        String className = entities.iterator().next().getQualifiedName().toString();
+        int lastdot = className.lastIndexOf('.');
+        String basePackageName = className.substring(0, lastdot);
+        writeToJavaFile(
+                "EntityTypeRuntimeResolvers",
+                basePackageName,
+                runtimeResolverBeanFactory.getConfigClassSpec(),
+                processingEnv,
+                "EntityTypeRuntimeResolvers");
     }
 
     public static void resolveCustomResolvers(Set<? extends TypeElement> entities, Map<TypeElement, List<VariableElement>> annotatedFieldsMap, Map<TypeElement, List<MethodSpec>> customResolversMap) {
