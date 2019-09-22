@@ -37,8 +37,10 @@ import static org.sindaryn.datafi.generator.SqlQueryMethodParser.parseResolver;
 @AutoService(Processor.class)
 public class DataLayerAnnotationsProcessor extends AbstractProcessor {
     private EntityTypeRuntimeResolverBeanFactory runtimeResolverBeanFactory;
+    private boolean done = false;
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
+        if(done) return false;
         //fetch all entities annotated with @PersistableEntity
         Set<? extends TypeElement> entities = getPersistableEntities(annotations, roundEnvironment);
         Map<TypeElement, List<VariableElement>> annotatedFieldsMap = new HashMap<>();
@@ -57,6 +59,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         the target application context
         */
         setComponentScan(entities);
+        done = true;
         //return false - these annotations are needed for the web-service layer as well
         return false;
     }
