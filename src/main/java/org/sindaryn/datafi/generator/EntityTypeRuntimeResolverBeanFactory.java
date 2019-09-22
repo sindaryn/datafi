@@ -17,6 +17,10 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import static org.sindaryn.datafi.StaticUtils.writeToJavaFile;
+
 @Data
 public class EntityTypeRuntimeResolverBeanFactory {
     private Map<TypeElement, MethodSpec> alreadyCreated = new HashMap<>();
@@ -50,8 +54,17 @@ public class EntityTypeRuntimeResolverBeanFactory {
         MethodSpec result = builder.build();
         alreadyCreated.put(entity, result);
         configClassSpec.addMethod(result);
-        /*int lastDot = entity.getQualifiedName().toString().lastIndexOf('.');
-        String packageName = entity.getQualifiedName().toString().substring(0, lastDot);
-        writeToJavaFile(entityName, packageName, builder, processingEnv, entityRuntimeTypeResolverName);*/
+    }
+
+    public void writeEntityRuntimeTypeResolversConfig(Set<? extends TypeElement> entities) {
+        String className = entities.iterator().next().getQualifiedName().toString();
+        int lastdot = className.lastIndexOf('.');
+        String basePackageName = className.substring(0, lastdot);
+        writeToJavaFile(
+                "EntityTypeRuntimeResolvers",
+                basePackageName,
+                configClassSpec,
+                processingEnv,
+                "EntityTypeRuntimeResolvers");
     }
 }
