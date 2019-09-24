@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 
 import static org.sindaryn.datafi.StaticUtils.camelCaseNameOf;
@@ -35,6 +36,7 @@ public class DataManagerFactory {
         var builder =
                 MethodSpec
                 .methodBuilder(camelCaseNameOf(entity) + "DataManager")
+                .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Bean.class)
                 .returns(ParameterizedTypeName.get(dataManagerType, entityType))
                 .addStatement("return new $T($T.class)", dataManagerType, entityType);
@@ -46,6 +48,7 @@ public class DataManagerFactory {
         var builder =
                 MethodSpec
                         .methodBuilder(camelCaseNameOf(entity) + "ArchivableDataManager")
+                        .addModifiers(Modifier.PUBLIC)
                         .addAnnotation(Bean.class)
                         .returns(ParameterizedTypeName.get(archivableDataManagerType, entityType))
                         .addStatement("return new $T($T.class)", archivableDataManagerType, entityType);
@@ -56,12 +59,14 @@ public class DataManagerFactory {
         return TypeSpec.classBuilder("DataManagersConfig")
                 .addAnnotation(Configuration.class)
                 .addMethod(MethodSpec.methodBuilder("nullTypeDataManager")
+                        .addModifiers(Modifier.PUBLIC)
                         .addAnnotation(Bean.class)
                         .addAnnotation(Primary.class)
                         .returns(dataManagerType)
                         .addStatement("return new $T()", dataManagerType)
                         .build())
                 .addMethod(MethodSpec.methodBuilder("nullTypeArchivableDataManager")
+                        .addModifiers(Modifier.PUBLIC)
                         .addAnnotation(Bean.class)
                         .addAnnotation(Primary.class)
                         .returns(archivableDataManagerType)
