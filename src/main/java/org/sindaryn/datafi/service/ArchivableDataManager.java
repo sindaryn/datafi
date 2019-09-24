@@ -1,16 +1,21 @@
 package org.sindaryn.datafi.service;
 
+import lombok.NonNull;
 import org.sindaryn.datafi.persistence.Archivable;
-import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.List;
 
 import static org.sindaryn.datafi.StaticUtils.*;
 
-@Service
+
 @SuppressWarnings("unchecked")
 public class ArchivableDataManager<T extends Archivable> extends BaseDataManager<T> {
+
+    public ArchivableDataManager(@NonNull Class<T> clazz) {
+        super(clazz);
+    }
+
     public T archive(T input) {
         Object id = getId(input, reflectionCache);
         final String simpleName = input.getClass().getSimpleName();

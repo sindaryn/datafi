@@ -3,12 +3,15 @@ package org.sindaryn.datafi;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import org.apache.commons.lang3.StringUtils;
+import org.sindaryn.datafi.persistence.Archivable;
 import org.sindaryn.datafi.reflection.CachedEntityType;
 import org.sindaryn.datafi.reflection.ReflectionCache;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
@@ -117,5 +120,26 @@ public class StaticUtils {
                 .printMessage(Diagnostic.Kind.ERROR,
                         "No id type found for entity " + entity.getSimpleName().toString(), entity);
         return null;
+    }
+
+    public static String getBasePackage(RoundEnvironment roundEnvironment) {
+        String commonPrefix = StringUtils.getCommonPrefix(getRootElementNames(roundEnvironment));
+        return commonPrefix.substring(0, commonPrefix.lastIndexOf("."));
+    }
+
+    public static String[] getRootElementNames(RoundEnvironment roundEnvironment) {
+        return roundEnvironment
+                .getRootElements()
+                .stream()
+                .map(el -> el.asType().toString())
+                .toArray(String[]::new);
+    }
+
+    public static boolean isArchivable(TypeElement element, ProcessingEnvironment processingEnv) {
+        return processingEnv.getTypeUtils().isAssignable(element.asType(), processingEnv.getElementUtils().getTypeElement(Archivable.class.getCanonicalName()).asType());
+    }
+
+    public static String camelCaseNameOf(Element element) {
+        return toCamelCase(element.getSimpleName().toString());
     }
 }

@@ -1,5 +1,8 @@
 package org.sindaryn.datafi.service;
 
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.sindaryn.datafi.persistence.GenericDao;
 import org.sindaryn.datafi.reflection.CachedEntityType;
@@ -27,7 +30,10 @@ import static org.sindaryn.datafi.StaticUtils.*;
 
 @Service
 @SuppressWarnings("unchecked")
+@NoArgsConstructor
+@RequiredArgsConstructor
 public abstract class BaseDataManager<T> {
+    @NonNull
     private Class<T> clazz;
     @Autowired
     protected ReflectionCache reflectionCache;

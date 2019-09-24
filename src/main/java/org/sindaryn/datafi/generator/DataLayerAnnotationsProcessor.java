@@ -18,7 +18,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 import java.util.*;
 
-import static org.sindaryn.datafi.StaticUtils.writeToJavaFile;
+import static org.sindaryn.datafi.StaticUtils.*;
 import static org.sindaryn.datafi.generator.CustomResolversFactory.resolveCustomResolvers;
 
 /**
@@ -39,15 +39,16 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         FuzzySearchMethodsFactory fuzzySearchMethodsFactory = new FuzzySearchMethodsFactory(processingEnv);
         Map<TypeElement, MethodSpec> fuzzySearchMethodsMap =
                 fuzzySearchMethodsFactory.resolveFuzzySearchMethods(entities);
-        EntityTypeRuntimeResolverBeanFactory runtimeResolverBeanFactory =
-                new EntityTypeRuntimeResolverBeanFactory(processingEnv);
         //generate a custom jpa repository for each entity
         DaoFactory daoFactory = new DaoFactory(processingEnv);
+        DataManagerFactory dataManagerFactory = new DataManagerFactory(processingEnv, getBasePackage(roundEnvironment));
         entities.forEach(entity -> {
             daoFactory.generateDao(entity, annotatedFieldsMap, customResolversMap, fuzzySearchMethodsMap);
-            runtimeResolverBeanFactory.generateEntityTypeRuntimeResolverBean(entity);
+            dataManagerFactory.addDataManager(entity);
+            if(isArchivable(entity, processingEnv))
+                dataManagerFactory.addArchivableDataManager(entity);
         });
-        runtimeResolverBeanFactory.writeEntityRuntimeTypeResolversConfig(entities);
+        dataManagerFactory.writeToFile();
         /*
         create a configuration source file such that
         our spring beans are included within
