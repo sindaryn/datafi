@@ -56,7 +56,7 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
         */
         setComponentScan(entities);
         //return false - these annotations are needed for the web-service layer as well
-        return false;
+        return true;
 
     }
 
