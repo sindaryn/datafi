@@ -1,5 +1,6 @@
 package org.sindaryn.datafi.service;
 
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 /**
@@ -7,6 +8,7 @@ import lombok.NonNull;
  * complete coverage of jpa repository operations
  * @param <T>
  */
+@NoArgsConstructor
 public class DataManager<T> extends BaseDataManager<T> {
     public DataManager(@NonNull Class<T> clazz) {
         super(clazz);

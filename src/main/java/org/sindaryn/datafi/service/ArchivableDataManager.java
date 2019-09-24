@@ -1,5 +1,6 @@
 package org.sindaryn.datafi.service;
 
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.sindaryn.datafi.persistence.Archivable;
 
@@ -10,6 +11,7 @@ import static org.sindaryn.datafi.StaticUtils.*;
 
 
 @SuppressWarnings("unchecked")
+@NoArgsConstructor
 public class ArchivableDataManager<T extends Archivable> extends BaseDataManager<T> {
 
     public ArchivableDataManager(@NonNull Class<T> clazz) {
