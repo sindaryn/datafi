@@ -41,6 +41,9 @@ public class DataManagerFactory {
                 .returns(ParameterizedTypeName.get(dataManagerType, entityType))
                 .addStatement("return new $T($T.class)", dataManagerType, entityType);
         dataManagersConfig.addMethod(builder.build());
+    }
+
+    public void addBasePackageResolver() {
         dataManagersConfig.addMethod(MethodSpec.methodBuilder("basePackageResolver")
                 .addAnnotation(Bean.class)
                 .addModifiers(Modifier.PUBLIC)
