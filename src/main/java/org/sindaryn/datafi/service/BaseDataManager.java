@@ -56,7 +56,6 @@ public abstract class BaseDataManager<T> {
 
     @PostConstruct
     private void init(){
-        clazzSimpleName = clazz.getSimpleName();
         daoMap = new HashMap<>();
         List<? extends GenericDao> daos = daoCollector.getDaos();
         daos.forEach(dao -> {
@@ -64,7 +63,8 @@ public abstract class BaseDataManager<T> {
             if(entityName != null)
                 daoMap.put(entityName, dao);
         });
-        dao = daoMap.get(clazzSimpleName);
+        if(clazz != null)
+            setType(clazz);
     }
 
     //spring framework instantiates proxies for each autowired instance.
