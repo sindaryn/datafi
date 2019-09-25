@@ -2,7 +2,6 @@ package org.sindaryn.datafi.generator;
 
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Sets;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -14,9 +13,10 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.sindaryn.datafi.StaticUtils.*;
 import static org.sindaryn.datafi.generator.CustomResolversFactory.resolveCustomResolvers;
@@ -68,11 +68,9 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
      * @return
      */
     private Set<? extends TypeElement> getPersistableEntities(RoundEnvironment roundEnvironment) {
-        Set<TypeElement> entities = new HashSet<>();
-        entities.addAll((Collection<? extends TypeElement>) roundEnvironment.getElementsAnnotatedWith(Entity.class));
-        entities.addAll((Collection<? extends TypeElement>) roundEnvironment.getElementsAnnotatedWith(Table.class));
-        return Sets.newHashSet(entities);
+        return getEntitiesSet(roundEnvironment);
     }
+
     private void setComponentScan(Set<? extends TypeElement> entities) {
         if(!entities.isEmpty()){
             String className = entities.iterator().next().getQualifiedName().toString();

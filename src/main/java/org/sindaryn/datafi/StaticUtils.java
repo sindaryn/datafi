@@ -1,5 +1,6 @@
 package org.sindaryn.datafi;
 
+import com.google.common.collect.Sets;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
@@ -16,13 +17,13 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.tools.Diagnostic;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class StaticUtils {
     public static String toPascalCase(String string){
@@ -133,6 +134,14 @@ public class StaticUtils {
                 .stream()
                 .map(el -> el.asType().toString())
                 .toArray(String[]::new);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Set<? extends TypeElement> getEntitiesSet(RoundEnvironment roundEnvironment) {
+        Set<TypeElement> entities = new HashSet<>();
+        entities.addAll((Collection<? extends TypeElement>) roundEnvironment.getElementsAnnotatedWith(Entity.class));
+        entities.addAll((Collection<? extends TypeElement>) roundEnvironment.getElementsAnnotatedWith(Table.class));
+        return Sets.newHashSet(entities);
     }
 
     public static boolean isArchivable(TypeElement element, ProcessingEnvironment processingEnv) {
