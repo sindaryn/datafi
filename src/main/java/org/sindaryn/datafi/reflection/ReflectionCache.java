@@ -5,10 +5,8 @@ import com.google.common.collect.Sets;
 import lombok.Getter;
 import lombok.NonNull;
 import org.reflections.Reflections;
-import org.sindaryn.datafi.annotations.MainClass;
+import org.sindaryn.datafi.generator.BasePackageResolver;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -27,9 +25,11 @@ public class ReflectionCache {
     @Getter
     private Map<Map.Entry<String, Class<?>[]>, Method> resolversCache;
 
+    @Autowired
+    private BasePackageResolver basePackageResolver;
     @PostConstruct
     private void init() {
-        reflections = new Reflections(getBasePackageName());
+        reflections = new Reflections(basePackageResolver.getBasePackage());
         entitiesCache = new HashMap<>();
         resolversCache = new HashMap<>();
         Set<Class<?>> dataModelEntityTypes = getAnnotatedEntities();
@@ -75,18 +75,5 @@ public class ReflectionCache {
             currentClassFields.addAll(parentClassFields);
         }
         return currentClassFields;
-    }
-
-    @Autowired
-    private ApplicationContext context;
-    private String getBasePackageName() {
-        Map<String, Object> annotatedBeans = context.getBeansWithAnnotation(SpringBootApplication.class);
-        if(annotatedBeans.isEmpty())
-            annotatedBeans = context.getBeansWithAnnotation(MainClass.class);
-        if(annotatedBeans.isEmpty())
-            throw new RuntimeException("Error building reflection cache: Main class must be annotated with either @SpringBootApplication or @MainClass");
-        String mainClassName = annotatedBeans.values().toArray()[0].getClass().getName();
-        int lastDot = mainClassName.lastIndexOf('.');
-        return mainClassName.substring(0, lastDot);
     }
 }

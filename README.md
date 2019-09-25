@@ -21,7 +21,10 @@ Datafi auto-generates the data access layer for Spring-Data-Jpa applications.
   - [@GetByUnique](#-getbyunique)
     * [Domain model](#domain-model-3)
     * [Example Service Layer](#example-service-layer-1)
-  - [@WithResolver(...)](#-withresolver--)
+- [Free text search](#free-text-search)
+	* [Domain model](#domain-model-4)
+	* [Example Service Layer](#example-service-layer-2)
+- [@WithResolver(...)](#-withresolver--)
     * [Domain model](#domain-model-4)
     * [Data access layer](#data-access-layer)
     * [Example Service Layer](#example-service-layer-2)
@@ -37,13 +40,12 @@ Datafi is available on maven central:
 <dependency>
     <groupId>org.sindaryn</groupId>
         <artifactId>datafi</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
 ### Requirements
-1. The main class must be annotated either with `@SpringBootApplication`, or `@MainClass`.
-2. All entities **must** have a public `getId()` method.
+1. All entities **must** have a public `getId()` method.
 
 ### Hello World  
 Datafi autogenerates Jpa repositories for all data model entities annotated with `@Entity` and / or `@Table` annotation(s).  
@@ -72,27 +74,7 @@ public class PersonService{
      private DataManager<Person> personDataManager;     
      
      public Person getPersonById(String id){  
-     return personDataManager.findById(Person.class, id).orElse(...); 
-     }
-}  
-```  
-As you can see, the first argument to the data accessor method is `Person.class`. What's happening under the hood is that at startup, a hashmap is created to map entity types to their respective JpaRepositories. Even though `DataManager<T>` is a generic, at runtime it has no internal way of knowing which entity type it is serving. This is thanks to java type erasure. The bottom line is that for every method which does not naturally include an actual instance (or list of instances) of the given type, the appropriate class type token must be provided as the first argument. 
-
-Alternately, you can manually call the `setType(Class<T> type)` method in `DataManger<T>`, and then omit the class type token as the first argument to subsequent method calls. With the above example, it might look as follows:  
-```  
-@Service  
-public class PersonService{  
-
-     @Autowired 
-     private DataManager<Person> personDataManager;     
-     
-     @PostConstruct  
-     private void init(){ 
-        personDataManager.setType(Person.class); 
-     }     
-     
-     public Person getPersonById(String id){  
-        return personDataManager.findById(id).orElse(...); 
+     return personDataManager.findById(id).orElse(...); 
      }
 }  
 ```  
@@ -155,27 +137,27 @@ public class PersonService{
      /* corresponds to @GetBy private String name; 
         Returns a list of persons with the (same) given name */
      public List<Person> getPersonsByName(String name){ 
-     return personDataManager.getBy(Person.class, "name", name).orElse(...); 
+     return personDataManager.getBy("name", name).orElse(...); 
      }     
      
      //corresponds to @GetAllBy private Integer age; 
      public List<Person> getAllPersonsByAge(List<Integer> ages){ 
-        return personDataManager.getAllBy(Person.class, "age", ages).orElse(...); 
+        return personDataManager.getAllBy("age", ages).orElse(...); 
          
      }     
      
      //the following two methods correspond to @GetBy @GetAllBy private String address;  
      public List<Person> getPersonsByAddress(String address){ 
-        return personDataManager.getBy(Person.class, "address", address).orElse(...);    
+        return personDataManager.getBy("address", address).orElse(...);    
      }  
      
      public List<Person> getAllPersonsByAddressIn(List<String> addresses){  
-        return personDataManager.getAllBy(Person.class, "address", addresses).orElse(...);
+        return personDataManager.getAllBy("address", addresses).orElse(...);
      }
 }  
 ```
 #### @GetByUnique
-As can be observed, the return type of both of the previous methods is a list. That's because there is no gaurantee of uniqueness with regards to a field simply because it's been annotated with `@GetBy` and/or `@GetAllBy`. This is where `@GetByUnique` differs; it takes a unique value argument, and returns a single corresponding entity. In order for this to be valid syntax, any field annotated with the `@GetByUnique` annotation must also be annotated with `@Column(unique = true)`. If a field is annotated with only `@GetByUnique` but not `@Column(unique = true)`, a compilation error will occur. The following is an illustrative example:
+As can be observed, the return type of both of the previous methods is a list. That's because there is no gaurantee of uniqueness with regards to a field simply because it's been annotated with `@GetBy` and / or `@GetAllBy`. This is where `@GetByUnique` differs; it takes a unique value argument, and returns a single corresponding entity. In order for this to be valid syntax, any field annotated with the `@GetByUnique` annotation must also be annotated with `@Column(unique = true)`. If a field is annotated with only `@GetByUnique` but not `@Column(unique = true)`, a compilation error will occur. The following is an illustrative example:
 ##### Domain model  
 ```  
 @Entity
@@ -205,11 +187,51 @@ public class PersonService{
      Returns a single person with the given name
      */ 
      public Person getPersonByUniqueName(String name){ 
-        return personDataManager.getByUnique(Person.class, "name", name).orElse(...); 
+        return personDataManager.getByUnique( "name", name).orElse(...); 
      } 
 }  
 
 ```
+
+#### Free text search
+Datafi comes with non case sensitive free text - or "Fuzzy" search out of the box. To make use of this, either one or more **String typed** fields can be annotated with `@FuzzySearchBy`, or the class itself can be annotated with `@FuzzySearchByFields({"field1", "field2", etc...})`.  Then the `fuzzySearchBy(String searchTerm, args...)` method in the respective class' `DataManager`  can be called. 
+
+Observe the following example:
+
+##### Domain model  
+```  
+@Entity
+//@FuzzySearchByFields({"name", "email"}) - this is equivalent to the field level annotations below
+public class Person{  
+
+     @Id 
+     private String id = UUID.randomUUID().toString(); 
+     
+     @FuzzySearchBy
+     private String name;
+	 @FuzzySearchBy
+	 private String email;
+    //...
+}  
+```  
+##### Example Service Layer  
+```  
+@Service  
+public class PersonService{  
+
+     @Autowired 
+     private DataManager<Person> personDataManager; 
+     
+     public List<Person> fuzzySearchPeople(String searchTerm){ 
+        return personDataManager.fuzzySearch(searchTerm); 
+     } 
+}  
+
+```
+`fuzzySearch` does not return a list of all matching database records, but rather the contents of a `Page` object. This means that the search results are paginated by definition. Because of this, `fuzzySearch` takes in the 2 optional arguments `int offset` and `int limit` - in that order. These are "optional" in the sense that if not specified, the offset and limit will default to 0 and 50 respectively. An additional 2 optional arguments are `String sortBy` and `Sort.Direction sortDirection` - in that order. `String sortBy` specifies the name of a field within the given entity by which to apply the sort. If no matching field is found an `IllegalArgumentException` is thrown. `Sort.Direction sortDirection` determines the ordering strategy. If not specified it defaults to ascending order (`ASC`).
+
+
+
 #### @WithResolver(...)  
 Thus far, the range of functionality required for most standard data layer operations has been covered. However, there are use cases where a more complex approach is required. One way in which `JpaRepository` addresses this need with the `@Query` annotation, with which the developer can take full advantage of the full power of either JPQL, or whichever native dialect is in use (by setting `@Query(..., nativeQuery = true, ...)`). Datafi addresses this need as well, by enabling the developer to define their own custom query based *resolver* methods, using the `@WithResolver(...)` as a **repeatable** class level annotation. See the following example:
 ##### Domain model  
@@ -344,7 +366,7 @@ public class PersonService{
 ```  
   
 ### Excluding fields from cascadeUpdate(...) operations  
-Field(s) to be excluded from `cascadeUpdate` operations should be annotated as `@NonCascadeUpdatable`. Alternately, if there are many such fields in a class and the developer would rather avoid the field-level annotational clutter, the class itself can be annotated with `@NonCascadeUpdatables`, with the relevant field names passsed as arguments. For example, the following:
+Field(s) to be excluded from `cascadeUpdate` operations should be annotated as `@NonApiUpdatable`. Alternately, if there are many such fields in a class and the developer would rather avoid the field-level annotational clutter, the class itself can be annotated with `@NonApiUpdatables`, with the relevant field names passsed as arguments. For example, the following:
   
  ```     
  @Entity  
@@ -353,10 +375,10 @@ Field(s) to be excluded from `cascadeUpdate` operations should be annotated as `
      @Id 
      private String id = UUID.randomUUID().toString();
      
-     @NonCascadeUpdatable 
+     @NonApiUpdatable 
      private String name; 
      
-     @NonCascadeUpdatable 
+     @NonApiUpdatable 
      private Integer age; 
      
      private String address; 
@@ -367,7 +389,7 @@ Field(s) to be excluded from `cascadeUpdate` operations should be annotated as `
   
  ```     
 @Entity  
-@NonCascadeUpdatables({"name", "age"}) 
+@NonApiUpdatables({"name", "age"}) 
 public class Person { 
 
     @Id 
