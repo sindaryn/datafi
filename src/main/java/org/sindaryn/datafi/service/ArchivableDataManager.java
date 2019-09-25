@@ -21,7 +21,7 @@ public class ArchivableDataManager<T extends Archivable> extends BaseDataManager
     public T archive(T input) {
         Object id = getId(input, reflectionCache);
         final String simpleName = input.getClass().getSimpleName();
-        T toArchive = findById((Class<T>) input.getClass(), id).orElse(null);
+        T toArchive = findById(id).orElse(null);
         if(toArchive == null) throwEntityNotFoundException(simpleName, id);
         toArchive.setIsArchived(true);
         return save(toArchive);
@@ -29,7 +29,7 @@ public class ArchivableDataManager<T extends Archivable> extends BaseDataManager
     public T deArchive(T input) {
         Object id = getId(input, reflectionCache);
         final String simpleName = input.getClass().getSimpleName();
-        T toDeArchive = findById((Class<T>) input.getClass(), id).orElse(null);
+        T toDeArchive = findById(id).orElse(null);
         if(toDeArchive == null) throwEntityNotFoundException(simpleName, id);
         toDeArchive.setIsArchived(false);
         return save(toDeArchive);
@@ -37,14 +37,13 @@ public class ArchivableDataManager<T extends Archivable> extends BaseDataManager
     public List<T> archiveCollection(Collection<T> input) {
         final Class<T> clazz = (Class<T>) input.iterator().next().getClass();
         List<Object> ids = getIdList(input, reflectionCache);
-        List<T> toArchive = findAllById(clazz, ids);
+        List<T> toArchive = findAllById(ids);
         toArchive.forEach(item -> item.setIsArchived(true));
         return saveAll(toArchive);
     }
     public List<T> deArchiveCollection(Collection<T> input) {
-        final Class<T> clazz = (Class<T>) input.iterator().next().getClass();
         List<Object> ids = getIdList(input, reflectionCache);
-        List<T> toDeArchive = findAllById(clazz, ids);
+        List<T> toDeArchive = findAllById(ids);
         toDeArchive.forEach(item -> item.setIsArchived(false));
         return saveAll(toDeArchive);
     }

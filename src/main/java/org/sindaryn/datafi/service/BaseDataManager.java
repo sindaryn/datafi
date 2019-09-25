@@ -22,7 +22,6 @@ import javax.persistence.OneToOne;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Maps.immutableEntry;
 import static org.sindaryn.datafi.StaticUtils.*;
@@ -34,6 +33,7 @@ import static org.sindaryn.datafi.StaticUtils.*;
 public abstract class BaseDataManager<T> {
     @NonNull
     private Class<T> clazz;
+    private String clazzSimpleName;
     @Autowired
     protected ReflectionCache reflectionCache;
     /**
@@ -42,6 +42,7 @@ public abstract class BaseDataManager<T> {
      * - or 'dao' to the name of its respective jpa repository.
      */
     private Map<String, GenericDao> daoMap;
+    private GenericDao dao;
     @Autowired//autowiring daos via proxy because cannot autowire directly in abstract class
     private DaoCollector daoCollector;
     /*@Autowired
@@ -49,10 +50,13 @@ public abstract class BaseDataManager<T> {
 
     public void setType(Class<T> type){
         this.clazz = type;
+        this.clazzSimpleName = type.getSimpleName();
+        dao = daoMap.get(clazzSimpleName);
     }
 
     @PostConstruct
     private void init(){
+        clazzSimpleName = clazz.getSimpleName();
         daoMap = new HashMap<>();
         List<? extends GenericDao> daos = daoCollector.getDaos();
         daos.forEach(dao -> {
@@ -60,6 +64,7 @@ public abstract class BaseDataManager<T> {
             if(entityName != null)
                 daoMap.put(entityName, dao);
         });
+        dao = daoMap.get(clazzSimpleName);
     }
 
     //spring framework instantiates proxies for each autowired instance.
@@ -78,158 +83,97 @@ public abstract class BaseDataManager<T> {
         return endIndex != -1 ? daoName.substring(0, endIndex) : null;
     }
 
-    public List<T> findAll(){return findAll(clazz);}
-
-    public List<T> findAll(Class<T> clazz) {
-        return daoMap.get(clazz.getSimpleName()).findAll();
-    }
-
+    public List<T> findAll(){return daoMap.get(clazzSimpleName).findAll();}
+    
     public List<T> findAll(Sort sort) {
-        return daoMap.get(clazz.getSimpleName()).findAll(sort);
+        return dao.findAll(sort);
     }
 
-    public List<T> findAll(Class<T> clazz, Sort sort) {
-        return daoMap.get(clazz.getSimpleName()).findAll(sort);
-    }
+    public Page<T> findAll(Pageable pageable) {return dao.findAll(pageable);}
 
-    public Page<T> findAll(Pageable pageable) {return daoMap.get(clazz.getSimpleName()).findAll(pageable);}
+    public List<T> findAllById(Iterable<?> iterable) {return dao.findAllById(iterable);}
 
-    public Page<T> findAll(Class<T> clazz, Pageable pageable) {return daoMap.get(clazz.getSimpleName()).findAll(pageable);}
-
-    public List<T> findAllById(Iterable<?> iterable) {return daoMap.get(clazz.getSimpleName()).findAllById(iterable);}
-
-    public List<T> findAllById(Class<T> clazz, Iterable<?> iterable) {return daoMap.get(clazz.getSimpleName()).findAllById(iterable);}
-
-    public long count() {return daoMap.get(clazz.getSimpleName()).count();}
-
-    public long count(Class<T> clazz) {return daoMap.get(clazz.getSimpleName()).count();}
+    public long count() {return dao.count();}
 
     public void deleteById(Object id) {
-        daoMap.get(clazz.getSimpleName()).deleteById(id);
-    }
-
-    public void deleteById(Class<T> clazz, Object id) {
-        daoMap.get(clazz.getSimpleName()).deleteById(id);
+        dao.deleteById(id);
     }
 
     public void delete(T t) {
-        daoMap.get(t.getClass().getSimpleName()).delete(t);
+        dao.delete(t);
     }
 
     public void deleteAll(Iterable<? extends T> iterable) {
-        long size = StreamSupport.stream(iterable.spliterator(), false).count();
-        if(size <= 0) return;
-        String clazzName = iterable.iterator().next().getClass().getSimpleName();
-        daoMap.get(clazzName).deleteAll(iterable);
+        dao.deleteAll(iterable);
     }
 
     public void deleteAll() {
-        daoMap.get(clazz.getSimpleName()).deleteAll();
-    }
-
-    public void deleteAll(Class<T> clazz) {
-        daoMap.get(clazz.getSimpleName()).deleteAll();
+        dao.deleteAll();
     }
 
     public <S extends T> S save(S s) {
-        return (S) daoMap.get(s.getClass().getSimpleName()).save(s);
+        return (S) dao.save(s);
     }
 
     public <S extends T> List<S> saveAll(Iterable<S> iterable) {
-        long size = StreamSupport.stream(iterable.spliterator(), false).count();
-        if(size <= 0) return new ArrayList<>();
-        String clazzName = iterable.iterator().next().getClass().getSimpleName();
-        return daoMap.get(clazzName).saveAll(iterable);
+        return dao.saveAll(iterable);
     }
 
     public Optional<T> findById(Object id) {
-        return daoMap.get(clazz.getSimpleName()).findById(id);
-    }
-
-    public Optional<T> findById(Class<T> clazz, Object id) {
-        return daoMap.get(clazz.getSimpleName()).findById(id);
+        return dao.findById(id);
     }
 
     public boolean existsById(Object id) {
-        return daoMap.get(clazz.getSimpleName()).existsById(id);
-    }
-
-    public boolean existsById(Class<T> clazz, Object id) {
-        return daoMap.get(clazz.getSimpleName()).existsById(id);
+        return dao.existsById(id);
     }
 
     public void flush() {
-        daoMap.get(clazz.getSimpleName()).flush();
-    }
-
-    public void flush(Class<T> clazz) {
-        daoMap.get(clazz.getSimpleName()).flush();
+        dao.flush();
     }
 
     public <S extends T> S saveAndFlush(S s) {
-        String clazzName = s.getClass().getSimpleName();
-        return (S) daoMap.get(clazzName).saveAndFlush(s);
+        return (S) dao.saveAndFlush(s);
     }
 
     public void deleteInBatch(Iterable<T> iterable) {
-        long size = StreamSupport.stream(iterable.spliterator(), false).count();
-        if(size <= 0) return;
-        String clazzName = iterable.iterator().next().getClass().getSimpleName();
-        daoMap.get(clazzName).deleteInBatch(iterable);
+        dao.deleteInBatch(iterable);
     }
 
     public void deleteAllInBatch() {
-        daoMap.get(clazz.getSimpleName()).deleteAllInBatch();
-    }
-
-    public void deleteAllInBatch(Class<?> clazz) {
-        daoMap.get(clazz.getSimpleName()).deleteAllInBatch();
+        dao.deleteAllInBatch();
     }
 
     public T getOne(Object id) {
-        return (T) daoMap.get(clazz.getSimpleName()).getOne(id);
-    }
-
-    public T getOne(Class<T> clazz, Object id) {
-        return (T) daoMap.get(clazz.getSimpleName()).getOne(id);
+        return (T) dao.getOne(id);
     }
 
     public <S extends T> Optional<S> findOne(Example<S> example) {
-        return Optional.empty();
+        return dao.findOne(example);
     }
 
     public <S extends T> List<S> findAll(Example<S> example) {
-        String clazzName = example.getProbe().getClass().getSimpleName();
-        return daoMap.get(clazzName).findAll(example);
+        return dao.findAll(example);
     }
 
     public <S extends T> List<S> findAll(Example<S> example, Sort sort) {
-        String clazzName = example.getProbe().getClass().getSimpleName();
-        return daoMap.get(clazzName).findAll(example, sort);
+        return dao.findAll(example, sort);
     }
 
     public <S extends T> Page<S> findAll(Example<S> example, Pageable pageable) {
-        String clazzName = example.getProbe().getClass().getSimpleName();
-        return daoMap.get(clazzName).findAll(example, pageable);
+        return dao.findAll(example, pageable);
     }
 
     public <S extends T> long count(Example<S> example) {
-        String clazzName = example.getProbe().getClass().getSimpleName();
-        return daoMap.get(clazzName).count(example);
+        return dao.count(example);
     }
 
     public <S extends T> boolean exists(Example<S> example) {
-        String clazzName = example.getProbe().getClass().getSimpleName();
-        return daoMap.get(clazzName).exists(example);
+        return dao.exists(example);
     }
+
 
     public List<T> getBy(String attributeName, Object attributeValue){
-        return getBy(clazz, attributeName, attributeValue);
-    }
-
-    public List<T> getBy(Class<T> clazz, String attributeName, Object attributeValue){
         try{
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
             Class<?>[] params = new Class<?>[]{attributeValue.getClass()};
             String resolverName = "findBy" + toPascalCase(attributeName);
             Method methodToInvoke = getMethodToInvoke(resolverName, params, dao);
@@ -239,9 +183,8 @@ public abstract class BaseDataManager<T> {
         }
     }
 
-    public Optional<T> getByUnique(Class<T> clazz, String attributeName, Object attributeValue){
+    public Optional<T> getByUnique(String attributeName, Object attributeValue){
         try{
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
             Class<?>[] params = new Class<?>[]{attributeValue.getClass()};
             String resolverName = "findBy" + toPascalCase(attributeName);
             Method methodToInvoke = getMethodToInvoke(resolverName, params, dao);
@@ -252,12 +195,7 @@ public abstract class BaseDataManager<T> {
     }
 
     public List<T> getAllBy(String attributeName, Object[] attributeValues){
-        return getAllBy(clazz, attributeName, attributeValues);
-    }
-
-    public List<T> getAllBy(Class<T> clazz, String attributeName, Object[] attributeValues){
         try{
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
             Class<?>[] params = new Class<?>[]{List.class};
             String resolverName = "findAllBy" + toPascalCase(attributeName) + "In";
             Method methodToInvoke = getMethodToInvoke(resolverName, params, dao);
@@ -268,52 +206,27 @@ public abstract class BaseDataManager<T> {
     }
 
     public Optional<T> findOne(Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).findOne(specification);
-    }
-
-    public Optional<T> findOne(Class<T> clazz, Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).findOne(specification);
+        return dao.findOne(specification);
     }
 
     public List<T> findAll(Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification);
-    }
-
-    public List<T> findAll(Class<T> clazz, Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification);
+        return dao.findAll(specification);
     }
 
     public Page<T> findAll(Specification<T> specification, Pageable pageable) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification, pageable);
-    }
-
-    public Page<T> findAll(Class<T> clazz, Specification<T> specification, Pageable pageable) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification, pageable);
+        return dao.findAll(specification, pageable);
     }
 
     public List<T> findAll(Specification<T> specification, Sort sort) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification, sort);
-    }
-
-    public List<T> findAll(Class<T> clazz, Specification<T> specification, Sort sort) {
-        return daoMap.get(clazz.getSimpleName()).findAll(specification, sort);
+        return dao.findAll(specification, sort);
     }
 
     public long count(Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).count(specification);
-    }
-
-    public long count(Class<T> clazz, Specification<T> specification) {
-        return daoMap.get(clazz.getSimpleName()).count(specification);
+        return dao.count(specification);
     }
 
     public List<T> selectByResolver(String resolverName, Object... args){
-        return selectByResolver(clazz, resolverName, args);
-    }
-
-    public List<T> selectByResolver(Class<?> clazz, String resolverName, Object... args){
         try{
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
             Class<?>[] params = new Class<?>[args.length];
             for (int i = 0; i < args.length; i++) params[i] = args[i].getClass();
             Method methodToInvoke = getMethodToInvoke(resolverName, params, dao);
@@ -329,8 +242,7 @@ public abstract class BaseDataManager<T> {
 
     public<HasTs> List<T> addNewToCollectionIn(HasTs toAddTo, String fieldName, List<T> toAdd){
 
-        final String toAddName = toAdd.get(0).getClass().getSimpleName();
-        GenericDao toAddDao = daoMap.get(toAddName);
+        GenericDao toAddDao = dao;
         final String toAddToName = toAddTo.getClass().getSimpleName();
         GenericDao toAddToDao = daoMap.get(toAddToName);
 
@@ -349,25 +261,23 @@ public abstract class BaseDataManager<T> {
 
     public<HasTs> List<T> attachExistingToCollectionIn(HasTs toAddTo, String fieldName, List<T> toAttach){
 
-        final String toAddName = toAttach.get(0).getClass().getSimpleName();
-        GenericDao toAddDao = daoMap.get(toAddName);
-        final String toAddToName = toAddTo.getClass().getSimpleName();
-        GenericDao toAddToDao = daoMap.get(toAddToName);
+        GenericDao toAttachDao = dao;
+        final String toAttachToName = toAddTo.getClass().getSimpleName();
+        GenericDao toAttachToDao = daoMap.get(toAttachToName);
 
-        toAttach = toAddDao.findAllById(idList(toAttach));
-        toAddTo = (HasTs) toAddToDao.findById(reflectionCache.getEntitiesCache().get(toAddToName).invokeGetter(toAddTo, "id")).orElse(null);
+        toAttach = toAttachDao.findAllById(idList(toAttach));
+        toAddTo = (HasTs) toAttachToDao.findById(reflectionCache.getEntitiesCache().get(toAttachToName).invokeGetter(toAddTo, "id")).orElse(null);
         if(toAddTo == null) throw new IllegalArgumentException("Could not find an entity with the given id");
         Method existingCollectionGetter = getMethodToInvoke("get" + toPascalCase(fieldName) ,toAddTo);
         Collection<T> existingCollection = (Collection<T>) invoke(existingCollectionGetter, toAddTo);
         existingCollection.addAll(toAttach);
         Method existingCollectionSetter = getMethodToInvoke("set" + toPascalCase(fieldName) ,toAddTo);
         invoke(existingCollectionSetter, toAddTo, existingCollection);
-        toAddToDao.save(toAddTo);
+        toAttachToDao.save(toAddTo);
         return toAttach;
     }
 
     public List<T> cascadeUpdateCollection(Iterable<T> toUpdate, Iterable<T> updated){
-        GenericDao dao = daoMap.get(toUpdate.iterator().next().getClass().getSimpleName());
         Iterator<T> updatedEntitiesIterator = updated.iterator();
         Iterator<T> entitiesToUpdateIterator = toUpdate.iterator();
         T entityToUpdate, updatedEntity;
@@ -455,47 +365,30 @@ public abstract class BaseDataManager<T> {
     }
 
     public List<Object> idList(Iterable<T> collection) {
-        CachedEntityType entityType = reflectionCache.getEntitiesCache().get(collection.iterator().next().getClass().getSimpleName());
+        CachedEntityType entityType = reflectionCache.getEntitiesCache().get(clazzSimpleName);
         List<Object> ids = new ArrayList<>();
         collection.forEach(item -> ids.add(entityType.invokeGetter(item, "id")));
         return ids;
     }
 
-    public org.sindaryn.datafi.reflection.ReflectionCache getReflectionCache() {
-        return this.reflectionCache;
-    }
-
     //implicit / default pagination
     public List<T> fuzzySearchBy(String searchTerm){
-        return fuzzySearchBy(clazz, searchTerm);
-    }
-    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm){
-        return fuzzySearchBy(clazz, searchTerm, 0, 50);
+        return fuzzySearchBy(searchTerm, 0, 50);
     }
 
     //explicit pagination
     public List<T> fuzzySearchBy(String searchTerm, int offset, int limit){
-        return fuzzySearchBy(clazz, searchTerm, offset, limit);
-    }
-    public List<T> fuzzySearchBy(Class<T> clazz, String searchTerm, int offset, int limit){
-        return fuzzySearchBy(clazz, searchTerm, offset, limit, null, null);
+        return fuzzySearchBy(searchTerm, offset, limit, null, null);
     }
 
     //explicit pagination with sort
-
     public List<T> fuzzySearchBy(String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
-        return fuzzySearchBy(clazz, searchTerm, offset, limit, sortBy, sortDirection);
-    }
-
-    public List<T> fuzzySearchBy(
-            Class<T> clazz, String searchTerm, int offset, int limit, String sortBy, Sort.Direction sortDirection){
         try{
             if(searchTerm.equals(""))
                 throw new IllegalArgumentException(
-                        "Illegal attempt to search for " + toPlural(clazz.getSimpleName()) + " with blank string"
+                        "Illegal attempt to search for " + toPlural(clazzSimpleName) + " with blank string"
                 );
             validateSortByIfNonNull(clazz, sortBy, reflectionCache);
-            GenericDao dao = daoMap.get(clazz.getSimpleName());
             Pageable paginator = generatePageRequest(offset, limit, sortBy, sortDirection);
             Method methodToInvoke =
                     getMethodToInvoke("fuzzySearch", new Class<?>[]{String.class, Pageable.class}, dao);
