@@ -47,8 +47,8 @@ public class DataLayerAnnotationsProcessor extends AbstractProcessor {
             dataManagerFactory.addDataManager(entity);
             if(isArchivable(entity, processingEnv))
                 dataManagerFactory.addArchivableDataManager(entity);
-            dataManagerFactory.addBasePackageResolver();
         });
+        dataManagerFactory.addBasePackageResolver();
         dataManagerFactory.writeToFile();
         /*
         create a configuration source file such that
