@@ -9,7 +9,6 @@ import org.sindaryn.datafi.reflection.CachedEntityType;
 import org.sindaryn.datafi.reflection.ReflectionCache;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ResolvableType;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,9 +53,6 @@ public abstract class BaseDataManager<T> {
 
     @PostConstruct
     private void init(){
-        ResolvableType type = ResolvableType.forClass(getClass());
-        Class<T> clazz = (Class<T>) type.getGeneric(0).resolve();
-        setType(clazz);
         daoMap = new HashMap<>();
         List<? extends GenericDao> daos = daoCollector.getDaos();
         daos.forEach(dao -> {
