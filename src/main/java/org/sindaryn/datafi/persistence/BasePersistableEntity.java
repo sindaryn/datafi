@@ -1,7 +1,7 @@
 package org.sindaryn.datafi.persistence;
 
 import lombok.*;
-import org.sindaryn.datafi.annotations.NonCascadeUpdatable;
+import org.sindaryn.datafi.annotations.NonApiUpdatable;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -26,13 +26,13 @@ public abstract class BasePersistableEntity<TID> implements Serializable {
      */
     @EmbeddedId
     @NonNull
-    @NonCascadeUpdatable
+    @NonApiUpdatable
     @Column(name = "id", unique=true, nullable=false, updatable=false)
     protected TID id;
-    @NonCascadeUpdatable
+    @NonApiUpdatable
     private Boolean isFirstPersist = true;
     @Version
-    @NonCascadeUpdatable
+    @NonApiUpdatable
     private Long version = 0L;
     @PrePersist
     public void init(){

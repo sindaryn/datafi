@@ -1,7 +1,7 @@
 package org.sindaryn.datafi.reflection;
 
-import org.sindaryn.datafi.annotations.NonCascadeUpdatable;
-import org.sindaryn.datafi.annotations.NonCascadeUpdatables;
+import org.sindaryn.datafi.annotations.NonApiUpdatable;
+import org.sindaryn.datafi.annotations.NonApiUpdatables;
 import org.sindaryn.datafi.annotations.NonNullable;
 
 import javax.persistence.*;
@@ -55,7 +55,7 @@ public class CachedEntityType {
     }
 
     private boolean isNonApiUpdatable(Field field) {
-        return  field.isAnnotationPresent(NonCascadeUpdatable.class) ||
+        return  field.isAnnotationPresent(NonApiUpdatable.class) ||
                 isInNonCascadeUpdatables(field) ||
                 field.isAnnotationPresent(Id.class) ||
                 field.isAnnotationPresent(EmbeddedId.class) ||
@@ -66,9 +66,9 @@ public class CachedEntityType {
     }
 
     private boolean isInNonCascadeUpdatables(Field field) {
-        NonCascadeUpdatables nonCascadeUpdatables = clazz.getAnnotation(NonCascadeUpdatables.class);
-        if(nonCascadeUpdatables != null){
-            for(String fieldName : nonCascadeUpdatables.value()){
+        NonApiUpdatables nonApiUpdatables = clazz.getAnnotation(NonApiUpdatables.class);
+        if(nonApiUpdatables != null){
+            for(String fieldName : nonApiUpdatables.value()){
                 if(fieldName.equals(field.getName()))
                     return true;
             }
