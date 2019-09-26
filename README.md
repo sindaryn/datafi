@@ -216,6 +216,7 @@ public class PersonService{
      public List<Person> getAllPersonsByAddressIn(List<String> addresses){  
         return personDataManager.getAll##### Domain model  
 ```  
+```
 @Entity
 public class Person{  
      @Id 
