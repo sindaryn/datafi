@@ -9,32 +9,38 @@ Datafi auto-generates the data access layer for Spring-Data-Jpa applications.
 + [Installation](#installation)
 + [Requirements](#requirements)
 + [Hello World](#hello-world)
-  - [Domain model](#domain-model)
-  - [Service layer](#service-layer)
+	- [Domain model](#domain-model)
+	- [Service layer](#service-layer)
 + [StandardPersistableEntity](#standardpersistableentity)
-  - [Domain model](#domain-model-1)
+	- [Domain model](#domain-model-1)
 + [IdFactory](#idfactory)
++ [Archivability](#archivability)
+	* [Overview](#overview)
+	* [Domain model](#domain-model-2)
+	* [Example Service Layer](#example-service-layer)
 + [Custom resolvers](#custom-resolvers)
-  - [@GetBy, and @GetAllBy](#-getby--and--getallby)
-    * [Domain model](#domain-model-2)
-    * [Example Service Layer](#example-service-layer)
-  - [@GetByUnique](#-getbyunique)
-    * [Domain model](#domain-model-3)
-    * [Example Service Layer](#example-service-layer-1)
+	- [@GetBy, and @GetAllBy](#-getby--and--getallby)
+		* [Domain model](#domain-model-3)
+		* [Example Service Layer](#example-service-layer-1)
+	- [@GetByUnique](#-getbyunique)
+		* [Domain model](#domain-model-4)
+		* [Example Service Layer](#example-service-layer-2)
 - [Free text search](#free-text-search)
-	* [Domain model](#domain-model-4)
-	* [Example Service Layer](#example-service-layer-2)
+	* [Domain model](#domain-model-5)
+	* [Example Service Layer](#example-service-layer-3)
 - [@WithResolver(...)](#-withresolver--)
-    * [Domain model](#domain-model-4)
-    * [Data access layer](#data-access-layer)
-    * [Example Service Layer](#example-service-layer-2)
-  - [Syntactic sugar](#syntactic-sugar)
+	* [Domain model](#domain-model-6)
+	* [Data access layer](#data-access-layer)
+	* [Example Service Layer](#example-service-layer-4)
+	- [Syntactic sugar](#syntactic-sugar)
 + [cascadedUpdate](#cascadedupdate)
-    + [cascadeUpdateCollection](#cascadeupdatecollection)
-    + [Excluding fields from cascadeUpdate(...) operations](#excluding-fields-from-cascadeupdate---operations)
++ [cascadeUpdateCollection](#cascadeupdatecollection)
+	- [Excluding fields from cascadeUpdate(...) operations](#excluding-fields-from-cascadeupdate---operations)
 + [Mutating the state of foreign key Iterables](#mutating-the-state-of-foreign-key-iterables)
++ [That's all for now, happy coding!](#that-s-all-for-now--happy-coding-)
+  * [License](#license)
 ### Installation  
-Datafi is available on maven central:  
+Datafi is available on [maven central](https://search.maven.org/artifact/org.sindaryn/datafi/0.0.2/jar):  
 
 ```
 <dependency>
@@ -104,7 +110,63 @@ public class Person{
      // getters & setters, etc...
 }  
 ```  
-  
+
+### Archivability
+
+##### Overview
+Sometimes when it comes to removing records from a database, the choice is made to mark the relevant records as archived, as oppposed to actually deleting them from the database. Datafi supports this out of the box with the `Archivable` interface and `ArchivableDataManager<T extends Archivable>` bean. The `Archivable` interface requires both a getter and setter for a `Boolean isArchived` field. Once the interface has been implemented by an entity, the `ArchivableDataManager<T extends Archivable>` bean can be autowired for that entity. `ArchivableDataManager<T extends Archivable>` extends the functionality of `DataManager<T>` with the following four methods:
+1. `public T archive(T input)`: Finds the `input` record by id, and marks it as archived.
+2. `public T deArchive(T input)`: The opposite of 1.
+3. `public List<T> archiveCollection(Collection<T> input)`: 1 in plural.
+4. `public List<T> deArchiveCollection(Collection<T> input)`: 2 in plural.
+
+Observe the following example:
+
+##### Domain model  
+```  
+@Entity
+public class Person implements Archivable{  
+     @Id 
+     private String id = UUID.randomUUID().toString(); 
+	 private Boolean isArchived = false; //use Boolean, not boolean
+	 @Override
+	 public Boolean getIsArchived(){
+	 		return this.isArchived;
+		}
+	 @Override
+	 public Boolean setIsArchived(Boolean isArchived){
+	 		this.isArchived = isArchived;
+		}
+     //...
+}  
+```  
+**_Side note:_** _In practice, manual coding of getters and setters is unnecessary, [lombok](https://projectlombok.org/)  can be used to auto generate them._
+##### Example Service Layer  
+```  
+@Service  
+public class PersonService{  
+
+     @Autowired 
+     private ArchivableDataManager<Person> archivablePersonDataManager; 
+	 
+	 public Person archivePerson(Person toArchive){
+	 	return archivablePersonDataManager.archive(toArchive);
+	 }
+	 
+	 public Person deArchivePerson(Person toDeArchive){
+	 	return archivablePersonDataManager.deArchive(toDeArchive);
+	 }
+	 
+	  public List<Person> archivePersons(List<Person> toArchive){
+	 	return archivablePersonDataManager.archiveCollection(toArchive);
+	 }
+	 
+	 public List<Person> deArchivePersons(List<Person> toDeArchive){
+	 	return archivablePersonDataManager.deArchiveCollection(toDeArchive);
+	 }
+}  
+```
+
 ### Custom resolvers  
   
 #### @GetBy, and @GetAllBy  
@@ -152,7 +214,52 @@ public class PersonService{
      }  
      
      public List<Person> getAllPersonsByAddressIn(List<String> addresses){  
+        return personDataManager.getAll##### Domain model  
+```  
+@Entity
+public class Person{  
+     @Id 
+     private String id = UUID.randomUUID().toString(); 
+     @GetBy 
+     private String name;
+     @GetAllBy 
+     private Integer age; 
+     @GetBy @GetAllBy 
+     private String address; 
+     // getters & setters, etc..
+}  
+```  
+As can be observed, a field can have both annotations at the same time.  
+##### Example Service Layer  
+```  
+@Service  
+public class PersonService{  
+
+     @Autowired 
+     private DataManager<Person> personDataManager; 
+     
+     /* corresponds to @GetBy private String name; 
+        Returns a list of persons with the (same) given name */
+     public List<Person> getPersonsByName(String name){ 
+     return personDataManager.getBy("name", name).orElse(...); 
+     }     
+     
+     //corresponds to @GetAllBy private Integer age; 
+     public List<Person> getAllPersonsByAge(List<Integer> ages){ 
+        return personDataManager.getAllBy("age", ages).orElse(...); 
+         
+     }     
+     
+     //the following two methods correspond to @GetBy @GetAllBy private String address;  
+     public List<Person> getPersonsByAddress(String address){ 
+        return personDataManager.getBy("address", address).orElse(...);    
+     }  
+     
+     public List<Person> getAllPersonsByAddressIn(List<String> addresses){  
         return personDataManager.getAllBy("address", addresses).orElse(...);
+     }
+}  
+```By("address", addresses).orElse(...);
      }
 }  
 ```
